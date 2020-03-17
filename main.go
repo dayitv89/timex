@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"time"
 
-	"./timeout"
+	"github.com/dayitv89/timex/timeout"
 )
 
 type dataTimeout struct {
@@ -32,10 +32,15 @@ func (h *handlerTimeout) ValidateBeforeAdd(d interface{}) bool {
 }
 
 func (h *handlerTimeout) Process(d ...interface{}) error {
-	newData, ok := d.([]dataTimeout)
-	if !ok {
-		return fmt.Errorf("some error while casting to string array")
+	newData := []dataTimeout{}
+	for _, d1 := range d {
+		d2, ok := d1.(dataTimeout)
+		if !ok {
+			return fmt.Errorf("some error while casting to string array")
+		}
+		newData = append(newData, d2)
 	}
+
 	fmt.Println("Yupiee processing data ", newData)
 	time.Sleep(1 * time.Second)
 	return nil
