@@ -195,3 +195,24 @@ func TestTimeLimitFullLastItem(t *testing.T) {
 	assert.Equal(t, 12, len(h.totalData), fmt.Sprintf("Test failed len is not matched to 12 != %d", len(h.totalData)))
 	assert.Equal(t, 12, len(h.currentData), fmt.Sprintf("Test failed len is not matched to 12 != %d", len(h.currentData)))
 }
+
+func TestTimeLimitFullLastItemClose(t *testing.T) {
+	h := new(testHandler)
+	manager := NewManager(h, 20, 1*time.Second, LastItem)
+
+	for i := 0; i < 12; i++ {
+		item := fmt.Sprintf("a_%d", i+1)
+		manager.Append(item)
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	assert.Equal(t, 0, h.count, fmt.Sprintf("Test failed process called more than expected 0 != %d", h.count))
+	assert.Equal(t, 0, len(h.totalData), fmt.Sprintf("Test failed len is not matched to 0 != %d", len(h.totalData)))
+	assert.Equal(t, 0, len(h.currentData), fmt.Sprintf("Test failed len is not matched to 0 != %d", len(h.currentData)))
+
+	manager.Close()
+	time.Sleep(500 * time.Millisecond)
+	assert.Equal(t, 1, h.count, fmt.Sprintf("Test failed process called more than expected 1 != %d", h.count))
+	assert.Equal(t, 12, len(h.totalData), fmt.Sprintf("Test failed len is not matched to 12 != %d", len(h.totalData)))
+	assert.Equal(t, 12, len(h.currentData), fmt.Sprintf("Test failed len is not matched to 12 != %d", len(h.currentData)))
+}
