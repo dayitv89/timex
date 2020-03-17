@@ -1,4 +1,4 @@
-module github.com/dayitv89/time-machine
+module github.com/dayitv89/timex
 
 go 1.12
 
