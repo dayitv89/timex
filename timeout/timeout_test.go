@@ -63,7 +63,7 @@ func TestItemLimitFullFirstItemWithClose(t *testing.T) {
 	assert.Equal(t, 10, len(h.currentData), fmt.Sprintf("Test failed len is not matched to 10 != %d", len(h.currentData)))
 
 	manager.Close()
-	time.Sleep(500 * time.Microsecond)
+	time.Sleep(500 * time.Millisecond)
 	assert.Equal(t, 2, h.count, fmt.Sprintf("Test failed process called more than expected 2 != %d", h.count))
 	assert.Equal(t, 12, len(h.totalData), fmt.Sprintf("Test failed len is not matched to 12 != %d", len(h.totalData)))
 	assert.Equal(t, 2, len(h.currentData), fmt.Sprintf("Test failed len is not matched to 2 != %d", len(h.currentData)))
