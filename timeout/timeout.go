@@ -2,13 +2,14 @@ package timeout
 
 import (
 	"context"
+	"reflect"
 	"time"
 )
 
 //Handler must required where call back comes to process work
 type Handler interface {
 	ValidateBeforeAdd(interface{}) bool
-	Process(...interface{}) error
+	Process([]interface{}) error
 	HandleProcessingError(e error)
 }
 
@@ -24,34 +25,84 @@ const (
 
 //Manager where every thing going to manage
 type Manager struct {
-	handler          Handler
-	limit            int
-	duration         time.Duration
-	from             FromItem
-	ctx              context.Context
-	ctxCancel        context.CancelFunc
-	clean            chan bool
-	discardRemaining bool
-	wip              bool
-	buffer           []interface{}
-	wipBuffer        []interface{}
+	handler   Handler
+	limit     int
+	duration  time.Duration
+	from      FromItem
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+	skip      bool
+	wip       bool
+	buffer    []interface{}
+	wipBuffer []interface{}
 }
 
 //NewManager create new instance
 func NewManager(h Handler, l int, d time.Duration, f FromItem) *Manager {
 	m := &Manager{
-		handler:          h,
-		limit:            l,
-		duration:         d,
-		from:             f,
-		clean:            make(chan bool),
-		discardRemaining: false,
-		wip:              false,
-		buffer:           emptyInterfaceArray(),
-		wipBuffer:        emptyInterfaceArray(),
+		handler:   h,
+		limit:     l,
+		duration:  d,
+		from:      f,
+		skip:      false,
+		wip:       false,
+		buffer:    emptyInterfaceArray(),
+		wipBuffer: emptyInterfaceArray(),
 	}
+
 	m.setContextAndStart()
 	return m
+}
+
+//Append object where you call this as thread safe
+func (m *Manager) Append(i interface{}) {
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(i)
+		data := make([]interface{}, s.Len())
+		for i := 0; i < s.Len(); i++ {
+			data[i] = s.Index(i).Interface()
+		}
+		m.append(data...)
+	default:
+		m.append(i)
+	}
+}
+
+func (m *Manager) append(i ...interface{}) {
+	for _, it := range i {
+		if m.wip {
+			m.wipBuffer = append(m.wipBuffer, it)
+		} else if m.handler.ValidateBeforeAdd(it) {
+			m.buffer = append(m.buffer, it)
+			if len(m.buffer) == 1 {
+				m.setContextAndStart()
+			} else if m.from == LastItem {
+				m.TimerRestart()
+			}
+
+			if len(m.buffer) >= m.limit {
+				m.process()
+			}
+		}
+	}
+}
+
+//ForceProcess force processing the data if your internal logic data immediately and don't want to Close/CloseAndskip the timeout logic.
+func (m *Manager) ForceProcess() {
+	m.process()
+}
+
+//TimerStop call when you want to invalidate the current timer, restart when you call TimerForceRestart.
+func (m *Manager) TimerStop() {
+	m.ctxCancel()
+}
+
+//TimerRestart re-initiate timer and discard current timer.
+func (m *Manager) TimerRestart() {
+	m.skip = true
+	m.TimerStop()
+	m.setContextAndStart()
 }
 
 //Close the timer and all running task gracefully
@@ -61,39 +112,21 @@ func (m *Manager) Close() {
 
 //CloseAndDiscardRemaining the timer and discard remaining buffer data
 func (m *Manager) CloseAndDiscardRemaining() {
-	m.discardRemaining = true
+	m.skip = true
+	// fmt.Println("process -- skip ", m.skip)
 	m.Close()
 }
 
-//Append object where you call this as thread safe
-func (m *Manager) Append(i ...interface{}) {
-	for _, it := range i {
-		if m.handler.ValidateBeforeAdd(it) {
-			if m.wip {
-				m.wipBuffer = append(m.wipBuffer, i...)
-			} else {
-				m.buffer = append(m.buffer, i...)
-				if m.from == LastItem {
-					m.TimerRestart()
-				}
-				if len(m.buffer) >= m.limit {
-					m.process()
-				}
-			}
-		}
-	}
-}
+/// Private:
 
 func (m *Manager) startTimer() {
 	go func(m *Manager) {
-		select {
-		case <-m.ctx.Done():
-			if !m.discardRemaining {
-				m.process()
-			}
-		case <-m.clean:
-			return
+		<-m.ctx.Done()
+		// fmt.Println("process -- Done ", m.skip)
+		if !m.skip {
+			m.process()
 		}
+		m.skip = false
 	}(m)
 }
 
@@ -101,22 +134,19 @@ func (m *Manager) process() {
 	if len(m.buffer) > 0 {
 		m.wip = true
 
-		if err := m.handler.Process(m.buffer...); err != nil {
+		if err := m.handler.Process(m.buffer); err != nil {
 			m.handler.HandleProcessingError(err)
 		}
 		m.buffer = emptyInterfaceArray()
 
 		m.wip = false
-		m.setContextAndStart()
 		if len(m.wipBuffer) > 0 {
-			m.Append(m.wipBuffer...)
+			m.setContextAndStart()
+			m.append(m.wipBuffer...)
+			// m.Append(m.wipBuffer)
 			m.wipBuffer = emptyInterfaceArray()
 		}
 	}
-}
-
-func emptyInterfaceArray() []interface{} {
-	return []interface{}{}
 }
 
 func (m *Manager) setContext() {
@@ -128,13 +158,6 @@ func (m *Manager) setContextAndStart() {
 	m.startTimer()
 }
 
-//TimerStop call when you want to invalidate the current timer, restart when you call TimerForceRestart.
-func (m *Manager) TimerStop() {
-	m.clean <- true
-}
-
-//TimerRestart re-initiate timer and discard current timer.
-func (m *Manager) TimerRestart() {
-	m.TimerStop()
-	m.setContextAndStart()
+func emptyInterfaceArray() []interface{} {
+	return []interface{}{}
 }

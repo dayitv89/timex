@@ -1,0 +1,42 @@
+Running tool: /usr/local/go/bin/go test -timeout 30s -coverprofile=/var/folders/ts/3pv_3s1n0jl2fs6hc_99fyt00000gn/T/vscode-goQpjMLh/go-code-cover github.com/dayitv89/timex/timeout -count=1 -v
+
+=== RUN   TestItemLimitFullFirstItem
+--- PASS: TestItemLimitFullFirstItem (0.00s)
+=== RUN   TestItemLimitFullFirstItemWithClose
+--- PASS: TestItemLimitFullFirstItemWithClose (0.50s)
+=== RUN   TestItemLimitFullFirstItemWithCloseDiscard
+--- PASS: TestItemLimitFullFirstItemWithCloseDiscard (0.00s)
+=== RUN   TestTimeLimitFullFirstItem
+--- PASS: TestTimeLimitFullFirstItem (1.24s)
+=== RUN   TestTimeLimitFullFirstItemWithClose
+--- PASS: TestTimeLimitFullFirstItemWithClose (1.24s)
+=== RUN   TestItemLimitFullLastItem
+--- PASS: TestItemLimitFullLastItem (0.00s)
+=== RUN   TestItemLimitFullLastItemWithClose
+--- FAIL: TestItemLimitFullLastItemWithClose (0.00s)
+    /Users/gauravds/go/src/github.com/dayitv89/timex/timeout/timeout_test.go:170: 
+        	Error Trace:	timeout_test.go:170
+        	Error:      	Not equal: 
+        	            	expected: 2
+        	            	actual  : 3
+        	Test:       	TestItemLimitFullLastItemWithClose
+        	Messages:   	Test failed process called more than expected 2 != 3
+    /Users/gauravds/go/src/github.com/dayitv89/timex/timeout/timeout_test.go:171: 
+        	Error Trace:	timeout_test.go:171
+        	Error:      	Not equal: 
+        	            	expected: 12
+        	            	actual  : 14
+        	Test:       	TestItemLimitFullLastItemWithClose
+        	Messages:   	Test failed len is not matched to 12 != 14
+=== RUN   TestItemLimitFullLastItemWithCloseDiscard
+--- PASS: TestItemLimitFullLastItemWithCloseDiscard (0.00s)
+=== RUN   TestTimeLimitFullLastItem
+--- PASS: TestTimeLimitFullLastItem (2.22s)
+=== RUN   TestTimeLimitFullLastItemClose
+--- PASS: TestTimeLimitFullLastItemClose (1.72s)
+=== RUN   TestProcessingFailed
+--- PASS: TestProcessingFailed (0.00s)
+FAIL
+coverage: 91.9% of statements
+FAIL	github.com/dayitv89/timex/timeout	6.947s
+Error: Tests failed.
